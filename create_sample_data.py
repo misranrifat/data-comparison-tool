@@ -26,20 +26,48 @@ def create_sample_data():
     }
 
     # After dataset (with some differences)
-    after_data = before_data.copy()
-    # Introduce some differences
+    # Create deep copy to avoid reference issues
+    after_data = {
+        "id": list(before_data["id"]),
+        "name": list(before_data["name"]),
+        "age": before_data["age"].copy(),
+        "salary": before_data["salary"].copy(),
+        "department": list(before_data["department"]),
+        "active": before_data["active"].copy(),
+        "score": before_data["score"].copy(),
+    }
+
+    # Introduce numerical differences
     after_data["salary"] = after_data["salary"] + np.random.normal(
         0, 100, 1000
     )  # Small salary changes
     after_data["score"] = after_data["score"] + np.random.normal(
         0, 0.5, 1000
     )  # Small score changes
-    # Change some names
+
+    # Change some names (non-numerical differences)
     for i in range(0, 50):
         after_data["name"][i] = f"Updated_Person_{i+1}"
-    # Change some departments
+
+    # Change some departments (non-numerical differences)
     for i in range(100, 150):
         after_data["department"][i] = "Sales"
+
+    # Add more non-numerical differences
+    # Change more names with different patterns
+    for i in range(200, 250):
+        after_data["name"][i] = f"Modified_{before_data['name'][i]}"
+
+    # Change departments for different ranges
+    for i in range(300, 320):
+        after_data["department"][i] = "Legal"
+
+    for i in range(400, 430):
+        after_data["department"][i] = "Operations"
+
+    # Add some completely different names
+    for i in range(500, 520):
+        after_data["name"][i] = f"NewEmployee_{i}"
 
     before_df = pd.DataFrame(before_data)
     after_df = pd.DataFrame(after_data)
