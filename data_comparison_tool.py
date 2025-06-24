@@ -153,7 +153,7 @@ class DataComparisonTool:
                 )
                 for orig, lower in zip(original_columns, lowercase_columns):
                     if orig != lower:
-                        self.logger.info(f"  - '{orig}' → '{lower}'")
+                        self.logger.info(f"  - '{orig}' -> '{lower}'")
 
             # Log pandas DataFrame info
             self.logger.info(f"{dataset_name} - Pandas DataFrame info:")
