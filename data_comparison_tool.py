@@ -15,6 +15,7 @@ from pathlib import Path
 import argparse
 from typing import Tuple, List
 import warnings
+import time
 
 # Suppress warnings for cleaner output
 warnings.filterwarnings("ignore")
@@ -500,6 +501,7 @@ class DataComparisonTool:
         Returns:
             bool: True if datasets are identical, False otherwise
         """
+        start_time = time.time()
         self.logger.info("Starting comprehensive data comparison")
         self.logger.info(f"Before dataset: {before_path}")
         self.logger.info(f"After dataset: {after_path}")
@@ -507,8 +509,13 @@ class DataComparisonTool:
 
         try:
             # Read datasets
+            read_start_time = time.time()
             before_df = self.read_data(before_path, "before_df")
             after_df = self.read_data(after_path, "after_df")
+            read_end_time = time.time()
+            self.logger.info(
+                f"Data reading completed in {read_end_time - read_start_time:.2f} seconds"
+            )
 
             # Compare shapes
             self.compare_shapes(before_df, after_df)
@@ -543,15 +550,25 @@ class DataComparisonTool:
             # Compare numerical columns
             numerical_diffs = pd.DataFrame()
             if numerical_columns:
+                numerical_start_time = time.time()
                 numerical_diffs = self.compare_numerical_columns(
                     before_df_common, after_df_common, numerical_columns, tolerance
+                )
+                numerical_end_time = time.time()
+                self.logger.info(
+                    f"Numerical comparison completed in {numerical_end_time - numerical_start_time:.2f} seconds"
                 )
 
             # Compare non-numerical columns
             non_numerical_diffs = pd.DataFrame()
             if non_numerical_columns:
+                non_numerical_start_time = time.time()
                 non_numerical_diffs = self.compare_non_numerical_columns(
                     before_df_common, after_df_common, non_numerical_columns
+                )
+                non_numerical_end_time = time.time()
+                self.logger.info(
+                    f"Non-numerical comparison completed in {non_numerical_end_time - non_numerical_start_time:.2f} seconds"
                 )
 
             # Combine all differences
@@ -564,6 +581,10 @@ class DataComparisonTool:
 
             # Generate summary report
             self.generate_summary_report()
+
+            # Log total time taken
+            total_time = time.time() - start_time
+            self.logger.info(f"Total comparison completed in {total_time:.2f} seconds")
 
             # Return True if no differences found
             return len(self.differences) == 0
