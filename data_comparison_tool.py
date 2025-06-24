@@ -6,18 +6,15 @@ This tool compares two datasets stored in S3 as parquet files.
 It uses Dask for efficient reading and pandas for comparison operations.
 """
 
-import os
 import sys
 import logging
 import pandas as pd
 import numpy as np
 import dask.dataframe as dd
-from datetime import datetime
 from pathlib import Path
 import argparse
-from typing import Tuple, List, Dict, Any
+from typing import Tuple, List
 import warnings
-import glob
 
 # Suppress warnings for cleaner output
 warnings.filterwarnings("ignore")
