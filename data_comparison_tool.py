@@ -429,22 +429,38 @@ class DataComparisonTool:
         return pd.DataFrame(non_numerical_differences)
 
     def save_differences_to_csv(
-        self, differences_df: pd.DataFrame, output_file: str = None
+        self,
+        differences_df: pd.DataFrame,
+        output_file: str = None,
+        max_rows: int = 1000,
     ):
         """
-        Save differences to a CSV file.
+        Save differences to a CSV file (limited to first max_rows for performance).
 
         Args:
             differences_df (pd.DataFrame): DataFrame containing all differences
             output_file (str): Output CSV file path
+            max_rows (int): Maximum number of rows to save to CSV (default: 1000)
         """
         if output_file is None:
             output_file = "data_differences.csv"
 
         if not differences_df.empty:
-            differences_df.to_csv(output_file, index=False)
+            total_differences = len(differences_df)
+
+            # Limit to first max_rows for CSV output
+            if total_differences > max_rows:
+                differences_to_save = differences_df.head(max_rows)
+                self.logger.info(
+                    f"Saving first {max_rows} differences to CSV (out of {total_differences} total)"
+                )
+            else:
+                differences_to_save = differences_df
+                self.logger.info(f"Saving all {total_differences} differences to CSV")
+
+            differences_to_save.to_csv(output_file, index=False)
             self.logger.info(f"Differences saved to: {output_file}")
-            self.logger.info(f"Total differences found: {len(differences_df)}")
+            self.logger.info(f"Total differences found: {total_differences}")
         else:
             self.logger.info("No differences found - no CSV file created")
 
