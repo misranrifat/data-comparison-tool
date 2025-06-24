@@ -483,6 +483,17 @@ class DataComparisonTool:
                 self.logger.error("No common columns found between datasets!")
                 return False
 
+            # Check if DataFrames have different number of rows
+            if before_df.shape[0] != after_df.shape[0]:
+                self.logger.error(
+                    f"Cannot perform row-by-row comparison: DataFrames have different number of rows "
+                    f"(before: {before_df.shape[0]}, after: {after_df.shape[0]})"
+                )
+                self.logger.error(
+                    "Row-by-row comparison requires identical number of rows in both datasets"
+                )
+                return False
+
             # Filter datasets to common columns only
             before_df_common = before_df[common_columns].copy()
             after_df_common = after_df[common_columns].copy()
