@@ -273,7 +273,7 @@ class DataComparisonTool:
                 }
             )
         else:
-            self.logger.info("✓ DataFrames have identical shapes")
+            self.logger.info("DataFrames have identical shapes")
 
     def compare_numerical_columns(
         self,
@@ -359,7 +359,7 @@ class DataComparisonTool:
                     }
                 )
             else:
-                self.logger.info(f"✓ No differences found in numerical column '{col}'")
+                self.logger.info(f"No differences found in numerical column '{col}'")
 
         return pd.DataFrame(numerical_differences)
 
@@ -423,7 +423,7 @@ class DataComparisonTool:
                 )
             else:
                 self.logger.info(
-                    f"✓ No differences found in non-numerical column '{col}'"
+                    f"No differences found in non-numerical column '{col}'"
                 )
 
         return pd.DataFrame(non_numerical_differences)
@@ -457,7 +457,7 @@ class DataComparisonTool:
         self.logger.info("=" * 50)
 
         if not self.differences:
-            self.logger.info("✓ NO DIFFERENCES FOUND - DataFrames are identical!")
+            self.logger.info("NO DIFFERENCES FOUND - DataFrames are identical!")
         else:
             self.logger.warning(f"Found {len(self.differences)} types of differences:")
             for i, diff in enumerate(self.differences, 1):
