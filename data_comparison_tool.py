@@ -287,9 +287,20 @@ class DataComparisonTool:
         for col in numerical_columns:
             self.logger.info(f"Comparing numerical column: {col}")
 
-            # Handle NaN values
-            before_col = before_df[col].fillna(0)
-            after_col = after_df[col].fillna(0)
+            # Convert to float for consistent comparison (handles int, bool, etc.)
+            original_type = before_df[col].dtype
+            try:
+                before_col = before_df[col].astype(float).fillna(0)
+                after_col = after_df[col].astype(float).fillna(0)
+                if original_type != "float64":
+                    self.logger.info(
+                        f"Converted column '{col}' from {original_type} to float64 for comparison"
+                    )
+            except (ValueError, TypeError) as e:
+                self.logger.warning(f"Could not convert column '{col}' to float: {e}")
+                # Fallback to original handling
+                before_col = before_df[col].fillna(0)
+                after_col = after_df[col].fillna(0)
 
             # Compare with tolerance
             diff_mask = ~np.isclose(before_col, after_col, atol=tolerance, rtol=0)
