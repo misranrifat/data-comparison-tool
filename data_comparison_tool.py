@@ -141,6 +141,20 @@ class DataComparisonTool:
             self.logger.info(f"Converting {dataset_name} Dask DataFrame to pandas...")
             pandas_df = dask_df.compute()
 
+            # Convert all column names to lowercase
+            original_columns = list(pandas_df.columns)
+            pandas_df.columns = pandas_df.columns.str.lower()
+            lowercase_columns = list(pandas_df.columns)
+
+            # Log column name changes if any occurred
+            if original_columns != lowercase_columns:
+                self.logger.info(
+                    f"Converted column names to lowercase for {dataset_name}"
+                )
+                for orig, lower in zip(original_columns, lowercase_columns):
+                    if orig != lower:
+                        self.logger.info(f"  - '{orig}' → '{lower}'")
+
             # Log pandas DataFrame info
             self.logger.info(f"{dataset_name} - Pandas DataFrame info:")
             self.logger.info(f"  - Shape: {pandas_df.shape}")
