@@ -331,22 +331,13 @@ class DataComparisonTool:
                     before_val = before_df.loc[idx, col]
                     after_val = after_df.loc[idx, col]
 
-                    # Calculate difference safely
-                    try:
-                        if pd.notna(before_val) and pd.notna(after_val):
-                            diff_value = abs(float(before_val) - float(after_val))
-                        else:
-                            diff_value = "NaN difference"
-                    except (ValueError, TypeError):
-                        diff_value = "Cannot calculate difference"
-
                     numerical_differences.append(
                         {
                             "row_index": idx,
                             "column": col,
                             "before_value": before_val,
                             "after_value": after_val,
-                            "difference": diff_value,
+                            "difference": "not_calculated",
                             "type": "numerical",
                         }
                     )
