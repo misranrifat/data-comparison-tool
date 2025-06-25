@@ -331,9 +331,14 @@ class DataComparisonTool:
                     before_val = before_df.loc[idx, col]
                     after_val = after_df.loc[idx, col]
 
+                    # Get the id value if id column exists, otherwise use row index
+                    id_value = (
+                        before_df.loc[idx, "id"] if "id" in before_df.columns else idx
+                    )
+
                     numerical_differences.append(
                         {
-                            "row_index": idx,
+                            "id": id_value,
                             "column": col,
                             "before_value": before_val,
                             "after_value": after_val,
@@ -394,9 +399,14 @@ class DataComparisonTool:
                 diff_indices = before_df.index[diff_mask].tolist()
 
                 for idx in diff_indices:
+                    # Get the id value if id column exists, otherwise use row index
+                    id_value = (
+                        before_df.loc[idx, "id"] if "id" in before_df.columns else idx
+                    )
+
                     non_numerical_differences.append(
                         {
-                            "row_index": idx,
+                            "id": id_value,
                             "column": col,
                             "before_value": before_df.loc[idx, col],
                             "after_value": after_df.loc[idx, col],

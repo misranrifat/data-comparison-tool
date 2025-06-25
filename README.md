@@ -124,7 +124,7 @@ AFTER_PATH = "s3://your-bucket/after-data-folder/"
 ### Differences CSV
 - Static CSV file: `data_differences.csv` (overwrites on each run)
 - Contains columns:
-  - `row_index`: Index of the differing row
+  - `id`: ID value from the dataset (if 'id' column exists) or row index
   - `column`: Column name where difference was found
   - `before_value`: Value in the before dataset
   - `after_value`: Value in the after dataset
