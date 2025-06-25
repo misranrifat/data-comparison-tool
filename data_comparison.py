@@ -3,13 +3,14 @@ import numpy as np
 import logging
 import sys
 
-def setup_logger(log_path='compare_dataframes.log', level=logging.INFO):
+
+def setup_logger(log_path="compare_dataframes.log", level=logging.INFO):
     # Set up a logger that writes to file and stdout
     logger = logging.getLogger("DataFrameComparator")
     logger.setLevel(level)
-    formatter = logging.Formatter('[%(asctime)s][%(levelname)s] %(message)s')
+    formatter = logging.Formatter("[%(asctime)s][%(levelname)s] %(message)s")
     # File handler
-    fh = logging.FileHandler(log_path, mode='w')
+    fh = logging.FileHandler(log_path, mode="w")
     fh.setFormatter(formatter)
     # Stream handler
     sh = logging.StreamHandler(sys.stdout)
@@ -20,7 +21,10 @@ def setup_logger(log_path='compare_dataframes.log', level=logging.INFO):
         logger.addHandler(sh)
     return logger
 
-def compare_dataframes(df1, df2, float_tol=1e-8, save_csv=True, csv_path="df_mismatches.csv", logger=None):
+
+def compare_dataframes(
+    df1, df2, float_tol=1e-8, save_csv=True, csv_path="df_mismatches.csv", logger=None
+):
     result = []
 
     logger.info("Starting DataFrame comparison...")
@@ -46,7 +50,9 @@ def compare_dataframes(df1, df2, float_tol=1e-8, save_csv=True, csv_path="df_mis
     for col in df1.columns.intersection(df2.columns):
         if df1[col].dtype != df2[col].dtype:
             dtype_diff[col] = (df1[col].dtype, df2[col].dtype)
-            logger.warning(f"Column '{col}' dtype mismatch: df1={df1[col].dtype}, df2={df2[col].dtype}")
+            logger.warning(
+                f"Column '{col}' dtype mismatch: df1={df1[col].dtype}, df2={df2[col].dtype}"
+            )
     if dtype_diff:
         msg = "Column dtype mismatches: " + str(dtype_diff)
         result.append(msg)
@@ -72,12 +78,16 @@ def compare_dataframes(df1, df2, float_tol=1e-8, save_csv=True, csv_path="df_mis
         cols = [df1.columns[i] for i in diff_locs[1]]
         logger.info(f"Found {len(rows)} mismatched cells.")
         for r, c in zip(rows, cols):
-            mismatch_rows.append({
+            mismatch_row = {
                 "row_index": r,
                 "column": c,
                 "df1_value": df1.at[r, c],
-                "df2_value": df2.at[r, c]
-            })
+                "df2_value": df2.at[r, c],
+            }
+            # Add id column if it exists in both dataframes
+            if "id" in df1.columns and "id" in df2.columns:
+                mismatch_row["id"] = df1.at[r, "id"]
+            mismatch_rows.append(mismatch_row)
         num_to_save = min(1000, len(mismatch_rows))
         msg = f"Found {len(mismatch_rows)} cell mismatches. Saving first {num_to_save} to '{csv_path}'."
         result.append(msg)
@@ -107,41 +117,48 @@ def compare_dataframes(df1, df2, float_tol=1e-8, save_csv=True, csv_path="df_mis
 
     return output
 
+
 def main():
     # Setup logging
     logger = setup_logger()
     logger.info("Script started.")
 
     # Demo: Load or create two DataFrames here. In reality, load from CSV/DB/whatever.
-    df1 = pd.DataFrame({
-        "id": [1, 2, 3],
-        "price": [10.2, 11.0, 12.1],
-        "product": ["Apple", "Orange", "Banana"],
-        "available": [True, False, True],
-        "date_added": pd.to_datetime(["2023-05-01", "2023-05-02", "2023-05-03"])
-    })
+    df1 = pd.DataFrame(
+        {
+            "id": [1, 2, 3],
+            "price": [10.2, 11.0, 12.1],
+            "product": ["Apple", "Orange", "Banana"],
+            "available": [True, False, True],
+            "date_added": pd.to_datetime(["2023-05-01", "2023-05-02", "2023-05-03"]),
+        }
+    )
 
-    df2 = pd.DataFrame({
-        "id": [1, 2, 3],
-        "price": [10.2, 11.0, 13.1],   # changed last price
-        "product": ["Apple", "Orange", "Banana"],
-        "available": [True, False, False],  # changed last availability
-        "date_added": pd.to_datetime(["2023-05-01", "2023-05-02", "2023-05-03"])
-    })
+    df2 = pd.DataFrame(
+        {
+            "id": [1, 2, 3],
+            "price": [10.2, 11.0, 13.1],  # changed last price
+            "product": ["Apple", "Orange", "Banana"],
+            "available": [True, False, False],  # changed last availability
+            "date_added": pd.to_datetime(["2023-05-01", "2023-05-02", "2023-05-03"]),
+        }
+    )
 
     # Compare DataFrames
     summary = compare_dataframes(
-        df1, df2, 
-        float_tol=1e-5, 
-        save_csv=True, 
-        csv_path="df_mismatches.csv", 
-        logger=logger
+        df1,
+        df2,
+        float_tol=1e-5,
+        save_csv=True,
+        csv_path="df_mismatches.csv",
+        logger=logger,
     )
 
     logger.info("Comparison summary:")
     logger.info("\n" + summary)
 
     logger.info("Script finished.")
+
 
 if __name__ == "__main__":
     main()
