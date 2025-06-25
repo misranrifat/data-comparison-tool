@@ -20,6 +20,11 @@ import time
 # Suppress warnings for cleaner output
 warnings.filterwarnings("ignore")
 
+# Configuration - modify these for your specific use case
+ID_COLUMN = (
+    "id"  # Change this to your ID column name: customer_id, car_id, user_id, etc.
+)
+
 
 class DataComparisonTool:
     """
@@ -333,7 +338,9 @@ class DataComparisonTool:
 
                     # Get the id value if id column exists, otherwise use row index
                     id_value = (
-                        before_df.loc[idx, "id"] if "id" in before_df.columns else idx
+                        before_df.loc[idx, ID_COLUMN]
+                        if ID_COLUMN in before_df.columns
+                        else idx
                     )
 
                     numerical_differences.append(
@@ -401,7 +408,9 @@ class DataComparisonTool:
                 for idx in diff_indices:
                     # Get the id value if id column exists, otherwise use row index
                     id_value = (
-                        before_df.loc[idx, "id"] if "id" in before_df.columns else idx
+                        before_df.loc[idx, ID_COLUMN]
+                        if ID_COLUMN in before_df.columns
+                        else idx
                     )
 
                     non_numerical_differences.append(
