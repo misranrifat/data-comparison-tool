@@ -15,9 +15,15 @@ from pathlib import Path
 import argparse
 from typing import Tuple, List
 import warnings
+import time
 
 # Suppress warnings for cleaner output
 warnings.filterwarnings("ignore")
+
+# Configuration - modify these for your specific use case
+ID_COLUMN = (
+    "id"  # Change this to your ID column name: customer_id, car_id, user_id, etc.
+)
 
 
 class DataComparisonTool:
@@ -141,6 +147,20 @@ class DataComparisonTool:
             self.logger.info(f"Converting {dataset_name} Dask DataFrame to pandas...")
             pandas_df = dask_df.compute()
 
+            # Convert all column names to lowercase
+            original_columns = list(pandas_df.columns)
+            pandas_df.columns = pandas_df.columns.str.lower()
+            lowercase_columns = list(pandas_df.columns)
+
+            # Log column name changes if any occurred
+            if original_columns != lowercase_columns:
+                self.logger.info(
+                    f"Converted column names to lowercase for {dataset_name}"
+                )
+                for orig, lower in zip(original_columns, lowercase_columns):
+                    if orig != lower:
+                        self.logger.info(f"  - '{orig}' -> '{lower}'")
+
             # Log pandas DataFrame info
             self.logger.info(f"{dataset_name} - Pandas DataFrame info:")
             self.logger.info(f"  - Shape: {pandas_df.shape}")
@@ -259,7 +279,7 @@ class DataComparisonTool:
                 }
             )
         else:
-            self.logger.info("✓ DataFrames have identical shapes")
+            self.logger.info("DataFrames have identical shapes")
 
     def compare_numerical_columns(
         self,
@@ -287,9 +307,20 @@ class DataComparisonTool:
         for col in numerical_columns:
             self.logger.info(f"Comparing numerical column: {col}")
 
-            # Handle NaN values
-            before_col = before_df[col].fillna(0)
-            after_col = after_df[col].fillna(0)
+            # Convert to float for consistent comparison (handles int, bool, etc.)
+            original_type = before_df[col].dtype
+            try:
+                before_col = before_df[col].astype(float).fillna(0)
+                after_col = after_df[col].astype(float).fillna(0)
+                if original_type != "float64":
+                    self.logger.info(
+                        f"Converted column '{col}' from {original_type} to float64 for comparison"
+                    )
+            except (ValueError, TypeError) as e:
+                self.logger.warning(f"Could not convert column '{col}' to float: {e}")
+                # Fallback to original handling
+                before_col = before_df[col].fillna(0)
+                after_col = after_df[col].fillna(0)
 
             # Compare with tolerance
             diff_mask = ~np.isclose(before_col, after_col, atol=tolerance, rtol=0)
@@ -302,18 +333,23 @@ class DataComparisonTool:
                 diff_indices = before_df.index[diff_mask].tolist()
 
                 for idx in diff_indices:
+                    before_val = before_df.loc[idx, col]
+                    after_val = after_df.loc[idx, col]
+
+                    # Get the id value if id column exists, otherwise use row index
+                    id_value = (
+                        before_df.loc[idx, ID_COLUMN]
+                        if ID_COLUMN in before_df.columns
+                        else idx
+                    )
+
                     numerical_differences.append(
                         {
-                            "row_index": idx,
+                            "id": id_value,
                             "column": col,
-                            "before_value": before_df.loc[idx, col],
-                            "after_value": after_df.loc[idx, col],
-                            "difference": (
-                                abs(before_df.loc[idx, col] - after_df.loc[idx, col])
-                                if pd.notna(before_df.loc[idx, col])
-                                and pd.notna(after_df.loc[idx, col])
-                                else "NaN difference"
-                            ),
+                            "before_value": before_val,
+                            "after_value": after_val,
+                            "difference": "not_calculated",
                             "type": "numerical",
                         }
                     )
@@ -327,7 +363,7 @@ class DataComparisonTool:
                     }
                 )
             else:
-                self.logger.info(f"✓ No differences found in numerical column '{col}'")
+                self.logger.info(f"No differences found in numerical column '{col}'")
 
         return pd.DataFrame(numerical_differences)
 
@@ -370,9 +406,16 @@ class DataComparisonTool:
                 diff_indices = before_df.index[diff_mask].tolist()
 
                 for idx in diff_indices:
+                    # Get the id value if id column exists, otherwise use row index
+                    id_value = (
+                        before_df.loc[idx, ID_COLUMN]
+                        if ID_COLUMN in before_df.columns
+                        else idx
+                    )
+
                     non_numerical_differences.append(
                         {
-                            "row_index": idx,
+                            "id": id_value,
                             "column": col,
                             "before_value": before_df.loc[idx, col],
                             "after_value": after_df.loc[idx, col],
@@ -391,28 +434,44 @@ class DataComparisonTool:
                 )
             else:
                 self.logger.info(
-                    f"✓ No differences found in non-numerical column '{col}'"
+                    f"No differences found in non-numerical column '{col}'"
                 )
 
         return pd.DataFrame(non_numerical_differences)
 
     def save_differences_to_csv(
-        self, differences_df: pd.DataFrame, output_file: str = None
+        self,
+        differences_df: pd.DataFrame,
+        output_file: str = None,
+        max_rows: int = 1000,
     ):
         """
-        Save differences to a CSV file.
+        Save differences to a CSV file (limited to first max_rows for performance).
 
         Args:
             differences_df (pd.DataFrame): DataFrame containing all differences
             output_file (str): Output CSV file path
+            max_rows (int): Maximum number of rows to save to CSV (default: 1000)
         """
         if output_file is None:
             output_file = "data_differences.csv"
 
         if not differences_df.empty:
-            differences_df.to_csv(output_file, index=False)
+            total_differences = len(differences_df)
+
+            # Limit to first max_rows for CSV output
+            if total_differences > max_rows:
+                differences_to_save = differences_df.head(max_rows)
+                self.logger.info(
+                    f"Saving first {max_rows} differences to CSV (out of {total_differences} total)"
+                )
+            else:
+                differences_to_save = differences_df
+                self.logger.info(f"Saving all {total_differences} differences to CSV")
+
+            differences_to_save.to_csv(output_file, index=False)
             self.logger.info(f"Differences saved to: {output_file}")
-            self.logger.info(f"Total differences found: {len(differences_df)}")
+            self.logger.info(f"Total differences found: {total_differences}")
         else:
             self.logger.info("No differences found - no CSV file created")
 
@@ -425,7 +484,7 @@ class DataComparisonTool:
         self.logger.info("=" * 50)
 
         if not self.differences:
-            self.logger.info("✓ NO DIFFERENCES FOUND - DataFrames are identical!")
+            self.logger.info("NO DIFFERENCES FOUND - DataFrames are identical!")
         else:
             self.logger.warning(f"Found {len(self.differences)} types of differences:")
             for i, diff in enumerate(self.differences, 1):
@@ -452,6 +511,7 @@ class DataComparisonTool:
         Returns:
             bool: True if datasets are identical, False otherwise
         """
+        start_time = time.time()
         self.logger.info("Starting comprehensive data comparison")
         self.logger.info(f"Before dataset: {before_path}")
         self.logger.info(f"After dataset: {after_path}")
@@ -459,8 +519,13 @@ class DataComparisonTool:
 
         try:
             # Read datasets
+            read_start_time = time.time()
             before_df = self.read_data(before_path, "before_df")
             after_df = self.read_data(after_path, "after_df")
+            read_end_time = time.time()
+            self.logger.info(
+                f"Data reading completed in {read_end_time - read_start_time:.2f} seconds"
+            )
 
             # Compare shapes
             self.compare_shapes(before_df, after_df)
@@ -470,6 +535,17 @@ class DataComparisonTool:
 
             if not common_columns:
                 self.logger.error("No common columns found between datasets!")
+                return False
+
+            # Check if DataFrames have different number of rows
+            if before_df.shape[0] != after_df.shape[0]:
+                self.logger.error(
+                    f"Cannot perform row-by-row comparison: DataFrames have different number of rows "
+                    f"(before: {before_df.shape[0]}, after: {after_df.shape[0]})"
+                )
+                self.logger.error(
+                    "Row-by-row comparison requires identical number of rows in both datasets"
+                )
                 return False
 
             # Filter datasets to common columns only
@@ -484,15 +560,25 @@ class DataComparisonTool:
             # Compare numerical columns
             numerical_diffs = pd.DataFrame()
             if numerical_columns:
+                numerical_start_time = time.time()
                 numerical_diffs = self.compare_numerical_columns(
                     before_df_common, after_df_common, numerical_columns, tolerance
+                )
+                numerical_end_time = time.time()
+                self.logger.info(
+                    f"Numerical comparison completed in {numerical_end_time - numerical_start_time:.2f} seconds"
                 )
 
             # Compare non-numerical columns
             non_numerical_diffs = pd.DataFrame()
             if non_numerical_columns:
+                non_numerical_start_time = time.time()
                 non_numerical_diffs = self.compare_non_numerical_columns(
                     before_df_common, after_df_common, non_numerical_columns
+                )
+                non_numerical_end_time = time.time()
+                self.logger.info(
+                    f"Non-numerical comparison completed in {non_numerical_end_time - non_numerical_start_time:.2f} seconds"
                 )
 
             # Combine all differences
@@ -505,6 +591,10 @@ class DataComparisonTool:
 
             # Generate summary report
             self.generate_summary_report()
+
+            # Log total time taken
+            total_time = time.time() - start_time
+            self.logger.info(f"Total comparison completed in {total_time:.2f} seconds")
 
             # Return True if no differences found
             return len(self.differences) == 0
